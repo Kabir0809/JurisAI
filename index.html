@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JURISAI - FIR Detection System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(to bottom right, #1d283e, #243b55);
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 850px;
+            background: #293444;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            text-align: center;
+            position: relative;
+            border: 1px solid #3e5064;
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            color: #e3ba59;
+            margin-bottom: 20px;
+        }
+
+        p {
+            font-size: 1rem;
+            margin-bottom: 20px;
+            color: #b0b8c0;
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 15px;
+            border: 2px solid #5bc0de;
+            border-radius: 10px;
+            font-size: 1rem;
+            resize: none;
+            outline: none;
+            margin-bottom: 20px;
+            background: #222c3b;
+            color: #eaeaea;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        textarea:focus {
+            border-color: #72d4f5;
+            box-shadow: 0 0 10px rgba(114, 212, 245, 0.5);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 12px 20px;
+            background: linear-gradient(to right, #4a90e2, #5bc0de);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.3s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 10px rgba(91, 192, 222, 0.4);
+        }
+
+        button.mic-btn {
+            background: linear-gradient(to right, #2f3d4f, #3e5064);
+        }
+
+        button.mic-btn:hover {
+            box-shadow: 0 5px 15px rgba(72, 87, 103, 0.4);
+        }
+
+        .output {
+            margin-top: 20px;
+            padding: 20px;
+            background: #222c3b;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .output h3 {
+            color: #5bc0de;
+            margin-bottom: 10px;
+        }
+
+        .output ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .output ul li {
+            background: rgba(91, 192, 222, 0.1);
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 1rem;
+            color: #eaeaea;
+        }
+
+        .spinner {
+            display: none;
+            margin: 20px auto;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.5);
+            border-top: 4px solid #5bc0de;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        footer {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #999;
+            border-top: 1px solid #3e5064;
+            padding-top: 10px;
+        }
+
+        footer span {
+            font-weight: bold;
+            color: #5bc0de;
+        }
+
+        .logo {
+            margin-bottom: 10px;
+        }
+
+        .logo img {
+            border-radius: 15px;
+            max-height: 150px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <img src="./Images/logo.jpeg" alt="JURISAI Logo">
+        </div>
+        <h1>JurisAI</h1>
+        <p>Submit FIR text below or use voice input for detection. JURISAI will analyze and identify applicable IPC sections.</p>
+        <textarea id="firInput" placeholder="Write your FIR text here..."></textarea>
+        <div class="controls">
+            <button class="mic-btn" onclick="startListening()">🎤 Speak</button>
+            <button onclick="detectIPC()">Detect IPC Sections</button>
+        </div>
+        <div class="spinner" id="spinner"></div>
+        <div class="output" id="output">
+            <h3>Detected IPC Sections:</h3>
+            <ul id="ipcList"></ul>
+        </div>
+        <footer>
+            <p>© 2025 JURISAI. All Rights Reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        let recognition;
+        let isListening = false;
+
+        // Initialize Speech Recognition
+        if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = "en-IN";
+            recognition.interimResults = false;
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('firInput').value += transcript + " ";
+            };
+            recognition.onerror = () => {
+                alert("Speech recognition failed. Please try again.");
+            };
+        } else {
+            alert("Speech recognition is not supported in this browser.");
+        }
+
+        function startListening() {
+            if (recognition) {
+                if (isListening) {
+                    recognition.stop();
+                    isListening = false;
+                } else {
+                    recognition.start();
+                    isListening = true;
+                }
+            }
+        }
+
+        async function detectIPC() {
+            const firText = document.getElementById("firInput").value;
+            const outputDiv = document.getElementById("output");
+            const ipcList = document.getElementById("ipcList");
+            const spinner = document.getElementById("spinner");
+
+            ipcList.innerHTML = "";
+            outputDiv.style.display = "none";
+
+            if (!firText.trim()) {
+                alert("Please provide the FIR text.");
+                return;
+            }
+
+            spinner.style.display = "block";
+
+            try {
+                const response = await fetch("http://127.0.0.1:5000/detect_ipc", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ fir_text: firText }),
+                });
+
+                if (!response.ok) throw new Error("Failed to process request.");
+
+                const data = await response.json();
+                const ipcSections = data.ipc_sections;
+
+                if (ipcSections.length > 0) {
+                    ipcSections.forEach(section => {
+                        const li = document.createElement("li");
+                        li.textContent = section;
+                        ipcList.appendChild(li);
+                    });
+                } else {
+                    ipcList.innerHTML = "<li>No IPC sections detected.</li>";
+                }
+
+                outputDiv.style.display = "block";
+            } catch (error) {
+                alert("Error: " + error.message);
+            } finally {
+                spinner.style.display = "none";
+            }
+        }
+    </script>
+</body>
+</html>
